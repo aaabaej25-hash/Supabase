@@ -1,0 +1,5 @@
+output_dir    = "C:\\youtube\\summaries"
+ollama_model  = "llama3.1"
+whisper_model = "base"
+language      = "ko"
+chunk_size    = 3000

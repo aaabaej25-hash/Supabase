@@ -1,0 +1,6 @@
+yt-dlp
+youtube-transcript-api
+faster-whisper
+ollama
+tomli; python_version < "3.11"
+pytest
