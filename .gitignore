@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+summaries/
+*.mp3
+*.m4a
