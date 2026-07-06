@@ -81,3 +81,15 @@ def test_preview_builds_and_serves(tmp_path):
     photo_name = "01-a.webp"
     r = client.get(f"/preview/테스트/photos/{photo_name}")
     assert r.status_code == 200
+
+
+def test_preview_photo_unknown_slug_returns_404(tmp_path):
+    client, cfg = make_client(tmp_path)
+    r = client.get("/preview/UPPER..bad/photos/x.webp")
+    assert r.status_code == 404
+
+
+def test_preview_photo_missing_file_returns_404(tmp_path):
+    client, cfg = make_client(tmp_path)
+    r = client.get("/preview/테스트/photos/없는파일.webp")
+    assert r.status_code == 404

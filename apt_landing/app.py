@@ -215,7 +215,12 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/preview/{slug}/photos/{name}")
     def preview_photo(slug: str, name: str):
-        return FileResponse(os.path.join(project_dir(cfg.projects_dir, slug), "build",
-                                         "photos", os.path.basename(name)))
+        if slug != slugify(slug):
+            raise HTTPException(404, "사진을 찾을 수 없습니다")
+        path = os.path.join(project_dir(cfg.projects_dir, slug), "build",
+                             "photos", os.path.basename(name))
+        if not os.path.isfile(path):
+            raise HTTPException(404, "사진을 찾을 수 없습니다")
+        return FileResponse(path)
 
     return app
