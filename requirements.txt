@@ -4,3 +4,10 @@ faster-whisper
 ollama
 tomli; python_version < "3.11"
 pytest
+fastapi
+uvicorn
+jinja2
+httpx
+beautifulsoup4
+pillow
+python-multipart

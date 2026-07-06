@@ -3,3 +3,9 @@ ollama_model  = "llama3.1"
 whisper_model = "base"
 language      = "ko"
 chunk_size    = 3000
+
+[apt_landing]
+ollama_model = "llama3.1"
+projects_dir = "projects"
+deploy_repo_path = "C:\\youtube\\apt-pages"
+pages_base_url = "https://eunj-it.github.io/apt-pages"
