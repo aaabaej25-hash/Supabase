@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ project.name }} — 배포</h1>
+
+{% if project.deployed_url %}
+<p>✅ 배포됨: <a href="{{ project.deployed_url }}" target="_blank">{{ project.deployed_url }}</a></p>
+<p><input type="text" value="{{ project.deployed_url }}" readonly onclick="this.select()" style="width:100%"> ← 클릭해서 복사</p>
+{% else %}
+<p>아직 배포되지 않았습니다.</p>
+{% endif %}
+
+<form method="post" action="/p/{{ project.slug }}/deploy">
+  <button type="submit">🚀 빌드하고 배포하기</button>
+</form>
+{% if project.deployed_url %}
+<form method="post" action="/p/{{ project.slug }}/undeploy">
+  <button type="submit">게시 중단 (페이지 내리기)</button>
+</form>
+{% endif %}
+<p style="margin-top:1rem;color:#777">배포 후 GitHub Pages 반영까지 1~2분 걸릴 수 있습니다.</p>
+{% endblock %}

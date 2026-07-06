@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from .builder import build
 from .config import AptConfig, load_config
 from .copywriter import CopyParseError, generate_copy, regenerate_section
+from .deployer import deploy, undeploy
 from .models import (
     COPY_SECTIONS,
     Project,
@@ -222,5 +223,35 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
         if not os.path.isfile(path):
             raise HTTPException(404, "사진을 찾을 수 없습니다")
         return FileResponse(path)
+
+    @app.get("/p/{slug}/deploy")
+    def deploy_page(request: Request, slug: str, error: str = "", notice: str = ""):
+        return render("deploy.html", request, project=load_project(cfg.projects_dir, slug),
+                      error=error, notice=notice)
+
+    @app.post("/p/{slug}/deploy")
+    def run_deploy(request: Request, slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        try:
+            _build_dir, failed = build(p, cfg.projects_dir)
+            p.deployed_url = deploy(p, cfg)
+            p.status = "deployed"
+            save_project(cfg.projects_dir, p)
+            notice = "배포 완료!" + (f" (사진 {len(failed)}장 처리 실패로 제외됨)" if failed else "")
+            return render("deploy.html", request, project=p, error="", notice=notice)
+        except RuntimeError as e:
+            return render("deploy.html", request, project=p, error=str(e), notice="")
+
+    @app.post("/p/{slug}/undeploy")
+    def run_undeploy(request: Request, slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        try:
+            undeploy(slug, cfg)
+            p.deployed_url = ""
+            p.status = "copy_done"
+            save_project(cfg.projects_dir, p)
+            return render("deploy.html", request, project=p, error="", notice="게시를 중단했습니다.")
+        except RuntimeError as e:
+            return render("deploy.html", request, project=p, error=str(e), notice="")
 
     return app
