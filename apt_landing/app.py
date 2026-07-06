@@ -1,7 +1,8 @@
 import os
 import re
+from urllib.parse import quote
 
-from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -42,6 +43,10 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
     def render(name: str, request: Request, **ctx):
         return templates.TemplateResponse(request, name, ctx)
 
+    @app.exception_handler(FileNotFoundError)
+    def not_found(request: Request, exc: FileNotFoundError):
+        return RedirectResponse("/?error=" + quote("매물을 찾을 수 없습니다."), status_code=303)
+
     @app.get("/")
     def index(request: Request, error: str = "", notice: str = ""):
         return render("index.html", request, projects=list_projects(cfg.projects_dir),
@@ -74,13 +79,23 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
         save_project(cfg.projects_dir, p)
         return render("edit.html", request, project=p, error="", notice="저장했습니다.")
 
+    def _next_photo_seq(p: Project) -> int:
+        max_seq = 0
+        for photo in p.photos:
+            prefix = photo.split("-", 1)[0]
+            if prefix.isdigit():
+                max_seq = max(max_seq, int(prefix))
+        return max_seq + 1
+
     @app.post("/p/{slug}/photos")
     def upload_photos(request: Request, slug: str, files: list[UploadFile] = File(...)):
         p = load_project(cfg.projects_dir, slug)
         photo_dir = os.path.join(project_dir(cfg.projects_dir, slug), "photos")
         os.makedirs(photo_dir, exist_ok=True)
+        seq = _next_photo_seq(p)
         for f in files:
-            name = f"{len(p.photos) + 1:02d}-{_safe_filename(f.filename)}"
+            name = f"{seq:02d}-{_safe_filename(f.filename)}"
+            seq += 1
             with open(os.path.join(photo_dir, name), "wb") as out:
                 out.write(f.file.read())
             p.photos.append(name)
@@ -90,8 +105,12 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/p/{slug}/photo-file/{name}")
     def photo_file(slug: str, name: str):
-        return FileResponse(os.path.join(project_dir(cfg.projects_dir, slug), "photos",
-                                         os.path.basename(name)))
+        if slug != slugify(slug):
+            raise HTTPException(404, "사진을 찾을 수 없습니다")
+        path = os.path.join(project_dir(cfg.projects_dir, slug), "photos", os.path.basename(name))
+        if not os.path.isfile(path):
+            raise HTTPException(404, "사진을 찾을 수 없습니다")
+        return FileResponse(path)
 
     @app.post("/p/{slug}/photos/{name}/delete")
     def delete_photo(request: Request, slug: str, name: str):

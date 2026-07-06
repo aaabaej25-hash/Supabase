@@ -1,4 +1,5 @@
 import io
+import os
 from urllib.parse import unquote
 
 from fastapi.testclient import TestClient
@@ -79,3 +80,45 @@ def test_photo_upload_delete_and_reorder(tmp_path):
     client.post(f"/p/테스트/photos/{second}/delete")
     p = load_project(cfg.projects_dir, "테스트")
     assert len(p.photos) == 1
+
+
+def test_photo_upload_numbering_avoids_collision_after_delete(tmp_path):
+    client, cfg = make_client(tmp_path)
+    client.post("/projects", data={"name": "테스트"})
+    files = [
+        ("files", ("a.png", png_bytes(), "image/png")),
+        ("files", ("b.png", png_bytes(), "image/png")),
+    ]
+    client.post("/p/테스트/photos", files=files)
+    p = load_project(cfg.projects_dir, "테스트")
+    first = p.photos[0]  # "01-a.png"
+    client.post(f"/p/테스트/photos/{first}/delete")
+
+    # 남은 사진과 같은 원본 파일명을 다시 업로드해도 번호가 충돌하면 안 됨
+    r = client.post("/p/테스트/photos", files=[("files", ("b.png", png_bytes(), "image/png"))])
+    assert r.status_code == 200
+    p = load_project(cfg.projects_dir, "테스트")
+    assert len(p.photos) == len(set(p.photos))  # 중복 항목 없음
+    photo_dir = os.path.join(cfg.projects_dir, "테스트", "photos")
+    for name in p.photos:
+        assert os.path.isfile(os.path.join(photo_dir, name))
+
+
+def test_unknown_slug_redirects_with_error(tmp_path):
+    client, cfg = make_client(tmp_path)
+    r = client.get("/p/없는매물")
+    assert r.status_code == 200
+    assert "매물을 찾을 수 없습니다" in r.text
+
+
+def test_photo_file_unknown_slug_returns_404(tmp_path):
+    client, cfg = make_client(tmp_path)
+    r = client.get("/p/없는매물/photo-file/x.png")
+    assert r.status_code == 404
+
+
+def test_photo_file_missing_file_returns_404(tmp_path):
+    client, cfg = make_client(tmp_path)
+    client.post("/projects", data={"name": "테스트"})
+    r = client.get("/p/테스트/photo-file/없는파일.png")
+    assert r.status_code == 404
