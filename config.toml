@@ -9,3 +9,8 @@ ollama_model = "llama3.1"
 projects_dir = "projects"
 deploy_repo_path = "C:\\youtube\\apt-pages"
 pages_base_url = "https://eunj-it.github.io/apt-pages"
+
+[book_toc]
+ollama_model = "llama3.1"
+output_dir = "book_tocs"
+book_count = 5
