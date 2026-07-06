@@ -40,7 +40,8 @@ Python(FastAPI) 로컬 웹앱 + Jinja2 정적 빌드 + GitHub Pages 배포.
 ```
 
 - **프로젝트 위치**: 이 리포에 `apt_landing/` 패키지로 추가 (youtube_summarizer와 형제). 추후 분리 시 폴더째 이동 가능
-- **데이터 저장**: DB 없음. 매물 하나 = `projects/<매물슬러그>/` 폴더 (`project.json` + `photos/` + `build/`)
+- **데이터 저장**: DB 없음. 매물 하나 = 리포 루트 `projects/<매물슬러그>/` 폴더 (`project.json` + `photos/` + `build/`). `projects/`는 `.gitignore`에 추가 (매물 데이터는 개인 데이터이므로 리포에 커밋하지 않음)
+- **설정**: 기존 `config.toml`에 `[apt_landing]` 섹션 추가 — Ollama 모델·엔드포인트, 배포 리포 경로/이름, GitHub Pages 기본 URL
 - **랜딩페이지 산출물**: 순수 HTML/CSS(+최소 JS) 정적 사이트
 - **배포 대상**: 별도 GitHub 리포(예: `apt-pages`)에 매물별 하위 폴더 → `https://<계정>.github.io/apt-pages/<매물슬러그>/`
 
@@ -49,7 +50,7 @@ Python(FastAPI) 로컬 웹앱 + Jinja2 정적 빌드 + GitHub Pages 배포.
 ### 3.1 `models.py` — 데이터 모델
 
 - `Project`: 매물 정보(단지명, 위치, 평형/가격 리스트, 입주시기, 특장점 메모), 카톡 링크, 참고 URL, 사진 목록(순서 포함), 상태(초안 → 카피확정 → 배포됨), 배포 URL
-- `StyleGuide`: 색상 팔레트(주조·보조·배경), 섹션 순서, 카피 톤 설명(한 문장). 기본값 내장 — 추출 실패 시 폴백
+- `StyleGuide`: 색상 팔레트(주조·보조·배경), 중간 섹션 순서, 카피 톤 설명(한 문장). 기본값 내장 — 추출 실패 시 폴백. "섹션 순서"는 베이스 템플릿의 중간 3개 섹션(핵심정보·입지·갤러리)의 배열 순서만 의미한다 — 히어로는 항상 처음, 문의 CTA는 항상 마지막으로 고정
 - `Copy`: 섹션별 문구 — 히어로 헤드라인/서브, 핵심정보 요약, 입지 문단, 갤러리 캡션, CTA 문구
 - 전체를 `project.json` 하나에 직렬화 (사진 파일 제외)
 
