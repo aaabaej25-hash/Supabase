@@ -4,3 +4,4 @@ __pycache__/
 summaries/
 *.mp3
 *.m4a
+.env
