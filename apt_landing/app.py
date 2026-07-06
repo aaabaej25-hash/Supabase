@@ -1,14 +1,19 @@
 import os
 import re
+from dataclasses import asdict
 from urllib.parse import quote
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from .builder import build
 from .config import AptConfig, load_config
+from .copywriter import CopyParseError, generate_copy, regenerate_section
 from .models import (
+    COPY_SECTIONS,
     Project,
+    StyleGuide,
     UnitType,
     list_projects,
     load_project,
@@ -16,6 +21,8 @@ from .models import (
     save_project,
     slugify,
 )
+from .ollama_client import ollama_chat
+from .style_extractor import extract_style
 
 _ADMIN_TEMPLATES = os.path.join(os.path.dirname(__file__), "templates", "admin")
 
@@ -132,5 +139,83 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
                 p.photos[i - 1], p.photos[i] = p.photos[i], p.photos[i - 1]
                 save_project(cfg.projects_dir, p)
         return render("edit.html", request, project=p, error="", notice="")
+
+    _SECTION_LABELS_UI = [
+        ("hero_headline", "히어로 헤드라인"),
+        ("hero_sub", "히어로 서브 문구"),
+        ("info_summary", "핵심 정보 요약"),
+        ("location_paragraph", "입지 설명"),
+        ("gallery_caption", "갤러리 캡션"),
+        ("cta_text", "문의 버튼 문구"),
+    ]
+
+    def _copy_page(request: Request, p, error="", notice="", failed_photos=None):
+        ctx_project = {**asdict(p), "slug": p.slug, "copy": asdict(p.copy)}
+        return render("copy.html", request, project=ctx_project,
+                      sections=_SECTION_LABELS_UI, error=error, notice=notice,
+                      failed_photos=failed_photos or [])
+
+    @app.get("/p/{slug}/copy")
+    def copy_page(request: Request, slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        # 미리보기 iframe이 어차피 빌드하지만, 사진 처리 실패 목록을 화면에 표시하기 위해
+        # 여기서도 빌드해 failed를 수집한다 (스펙 5절: 실패한 사진은 목록에 표시)
+        _build_dir, failed = build(p, cfg.projects_dir)
+        return _copy_page(request, p, failed_photos=failed)
+
+    @app.post("/p/{slug}/style")
+    def run_style(request: Request, slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        p.style = extract_style(p.reference_url, cfg.ollama_model, chat=ollama_chat)
+        save_project(cfg.projects_dir, p)
+        if p.style.extracted:
+            notice, error = f"스타일 추출 완료 — 주조색 {p.style.primary_color}", ""
+        else:
+            notice, error = "", "스타일 추출에 실패해 기본 스타일을 사용합니다. (JS 렌더링 페이지는 지원 안 됨)"
+        return render("edit.html", request, project=p, error=error, notice=notice)
+
+    @app.post("/p/{slug}/copy/generate")
+    def gen_copy(request: Request, slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        try:
+            p.copy = generate_copy(p, cfg.ollama_model, chat=ollama_chat)
+            save_project(cfg.projects_dir, p)
+            return _copy_page(request, p, notice="카피를 생성했습니다. 검토 후 수정하세요.")
+        except CopyParseError as e:
+            return _copy_page(request, p, error=f"카피 형식 오류 — 아래 원문을 참고해 직접 입력하세요:\n{e.raw}")
+        except RuntimeError as e:
+            return _copy_page(request, p, error=str(e))
+
+    @app.post("/p/{slug}/copy/generate/{section}")
+    def gen_section(request: Request, slug: str, section: str):
+        p = load_project(cfg.projects_dir, slug)
+        try:
+            setattr(p.copy, section, regenerate_section(p, section, cfg.ollama_model, chat=ollama_chat))
+            save_project(cfg.projects_dir, p)
+            return _copy_page(request, p, notice="섹션을 재생성했습니다.")
+        except (RuntimeError, ValueError) as e:
+            return _copy_page(request, p, error=str(e))
+
+    @app.post("/p/{slug}/copy")
+    async def save_copy(request: Request, slug: str):
+        form = await request.form()
+        p = load_project(cfg.projects_dir, slug)
+        for section in COPY_SECTIONS:
+            setattr(p.copy, section, str(form.get(section, "")).strip())
+        if p.status == "draft":
+            p.status = "copy_done"
+        save_project(cfg.projects_dir, p)
+        return _copy_page(request, p, notice="카피를 저장했습니다.")
+
+    @app.get("/preview/{slug}/")
+    def preview(slug: str):
+        p = load_project(cfg.projects_dir, slug)
+        build_dir, _failed = build(p, cfg.projects_dir)
+        return FileResponse(os.path.join(build_dir, "index.html"))
+
+    @app.get("/preview/{slug}/photos/{name}")
+    def preview_photo(slug: str, name: str):
+        return FileResponse(os.path.join(project_dir(cfg.projects_dir, slug), "build",
+                                         "photos", os.path.basename(name)))
 
     return app

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ project.name }} — 카피·미리보기</h1>
+
+<form method="post" action="/p/{{ project.slug }}/copy/generate">
+  <button type="submit">🤖 전체 카피 생성 (Ollama)</button>
+  <span>톤: {{ project.style.tone }}</span>
+</form>
+
+<form method="post" action="/p/{{ project.slug }}/copy">
+  {% for section, label in sections %}
+  <label>{{ label }}
+    <textarea name="{{ section }}" rows="{{ 3 if section in ['info_summary', 'location_paragraph'] else 1 }}">{{ project.copy[section] }}</textarea>
+  </label>
+  <button type="submit" form="regen-{{ section }}">이 섹션만 재생성</button>
+  {% endfor %}
+  <hr>
+  <button type="submit">카피 저장 (미리보기 갱신)</button>
+</form>
+{% for section, label in sections %}
+<form id="regen-{{ section }}" method="post" action="/p/{{ project.slug }}/copy/generate/{{ section }}"></form>
+{% endfor %}
+
+<h2 style="margin-top:2rem">미리보기 (배포 결과와 동일)</h2>
+{% if failed_photos %}<div class="error">사진 처리 실패(건너뜀): {{ failed_photos|join(", ") }}</div>{% endif %}
+<iframe src="/preview/{{ project.slug }}/"></iframe>
+{% endblock %}
