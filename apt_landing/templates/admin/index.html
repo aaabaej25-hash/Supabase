@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>매물 목록</h1>
+<form method="post" action="/projects">
+  <label>새 매물 이름 <input type="text" name="name" required></label>
+  <label><input type="checkbox" name="overwrite"> 같은 이름이 있으면 덮어쓰기</label>
+  <button type="submit">만들기</button>
+</form>
+<table style="margin-top:1.5rem">
+  <tr><th>매물</th><th>상태</th><th>배포 URL</th></tr>
+  {% for p in projects %}
+  <tr>
+    <td><a href="/p/{{ p.slug }}">{{ p.name }}</a></td>
+    <td>{{ {"draft": "초안", "copy_done": "카피 확정", "deployed": "배포됨"}[p.status] }}</td>
+    <td>{% if p.deployed_url %}<a href="{{ p.deployed_url }}" target="_blank">{{ p.deployed_url }}</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

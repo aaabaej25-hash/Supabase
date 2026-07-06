@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ project.name }} — 정보·사진</h1>
+<form method="post" action="/p/{{ project.slug }}">
+  <label>단지명 <input type="text" name="name" value="{{ project.name }}"></label>
+  <label>위치(주소) <input type="text" name="address" value="{{ project.address }}"></label>
+  <label>입주시기 <input type="text" name="move_in" value="{{ project.move_in }}"></label>
+  <label>평형/가격 (한 줄에 하나, "84A|15억" 형식)
+    <textarea name="units_text" rows="4">{% for u in project.units %}{{ u.name }}|{{ u.price }}
+{% endfor %}</textarea></label>
+  <label>특장점 메모 <textarea name="highlights" rows="3">{{ project.highlights }}</textarea></label>
+  <label>카카오톡 문의 링크 (채널 또는 오픈채팅) <input type="text" name="kakao_link" value="{{ project.kakao_link }}"></label>
+  <label>참고 랜딩페이지 URL (선택) <input type="text" name="reference_url" value="{{ project.reference_url }}"></label>
+  <button type="submit">저장</button>
+</form>
+
+<h2 style="margin-top:2rem">사진 ({{ project.photos|length }}장 — 첫 사진이 히어로 배경)</h2>
+<form method="post" action="/p/{{ project.slug }}/photos" enctype="multipart/form-data">
+  <input type="file" name="files" multiple accept="image/*">
+  <button type="submit">업로드</button>
+</form>
+{% for photo in project.photos %}
+<div class="photo-row">
+  <img src="/p/{{ project.slug }}/photo-file/{{ photo }}" alt="{{ photo }}">
+  <span>{{ photo }}</span>
+  <form class="inline" method="post" action="/p/{{ project.slug }}/photos/{{ photo }}/up"><button>▲ 위로</button></form>
+  <form class="inline" method="post" action="/p/{{ project.slug }}/photos/{{ photo }}/delete"><button>삭제</button></form>
+</div>
+{% endfor %}
+
+<h2 style="margin-top:2rem">스타일</h2>
+<p>
+  {% if project.style.extracted %}✅ 참고 URL에서 추출된 스타일 사용 중 — 주조색 <code>{{ project.style.primary_color }}</code>, 톤: {{ project.style.tone }}
+  {% else %}ℹ️ 기본 스타일 사용 중 (추출 실패 또는 미실행){% endif %}
+</p>
+<form method="post" action="/p/{{ project.slug }}/style">
+  <button type="submit" {% if not project.reference_url %}disabled{% endif %}>참고 URL에서 스타일 추출</button>
+  {% if not project.reference_url %}<span>← 참고 URL을 먼저 저장하세요</span>{% endif %}
+</form>
+{% endblock %}
