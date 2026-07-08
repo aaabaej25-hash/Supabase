@@ -1,3 +1,6 @@
+import time
+
+import httpx
 from bs4 import BeautifulSoup
 
 from book_toc.models import Book
@@ -55,3 +58,56 @@ def parse_book_detail(html: str, url: str) -> Book:
         toc=_section_text(soup, "infoset_toc"),
         url=url,
     )
+
+
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+
+
+def _fetch(client, url: str) -> str:
+    resp = client.get(url, headers={"User-Agent": USER_AGENT}, follow_redirects=True)
+    resp.raise_for_status()
+    return resp.text
+
+
+def collect_books(
+    topic: str,
+    count: int = 5,
+    max_try: int = 15,
+    delay: float = 1.0,
+    client=None,
+) -> list[Book]:
+    own_client = client is None
+    if own_client:
+        client = httpx.Client(timeout=15)
+    try:
+        search_url = httpx.URL(
+            SEARCH_URL, params={"domain": "BOOK", "query": topic, "order": "SALE_WEIGHT"}
+        )
+        try:
+            search_html = _fetch(client, str(search_url))
+        except Exception as e:
+            raise Yes24Error(f"예스24 검색 요청 실패: {e}")
+
+        urls = parse_search_results(search_html)
+        if not urls:
+            raise Yes24Error("검색 결과가 없습니다. 더 일반적인 키워드를 시도해보세요.")
+
+        books: list[Book] = []
+        for url in urls[:max_try]:
+            if len(books) >= count:
+                break
+            try:
+                html = _fetch(client, url)
+                book = parse_book_detail(html, url)
+            except Yes24Error:
+                raise
+            except Exception:
+                continue  # 개별 책 실패는 건너뜀
+            if book.toc.strip():
+                books.append(book)
+            if delay:
+                time.sleep(delay)
+        return books
+    finally:
+        if own_client:
+            client.close()
