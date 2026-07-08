@@ -6,6 +6,18 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8123", "--directory", "C:/dev/hompage"],
       "port": 8123
+    },
+    {
+      "name": "blog-niche-finder",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["C:/youtube/blog_niche_finder/app.py"],
+      "port": 5000
+    },
+    {
+      "name": "todolist",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5500", "--directory", "C:/dev/todolist"],
+      "port": 5500
     }
   ]
 }
