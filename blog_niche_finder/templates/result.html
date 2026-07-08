@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>분석 결과 - 틈새 주제 추천</title>
+<style>
+  body { font-family: "Malgun Gothic", sans-serif; max-width: 900px; margin: 40px auto; color: #222; }
+  h1 { font-size: 22px; }
+  a.back { color: #4C72B0; text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; font-size: 14px; vertical-align: top; }
+  th { background: #f2f2f2; }
+  .rank { font-weight: bold; text-align: center; width: 40px; }
+  .comp-낮음 { color: #2e7d32; font-weight: bold; }
+  .comp-중간 { color: #ef6c00; font-weight: bold; }
+  .comp-높음 { color: #c62828; font-weight: bold; }
+  .downloads { margin-top: 20px; }
+  .downloads a { display: inline-block; margin-right: 14px; padding: 6px 14px; background: #eef2fa; border-radius: 4px; text-decoration: none; color: #2a4d8a; }
+  img.chart { max-width: 100%; margin-top: 16px; border: 1px solid #eee; }
+  details { margin-top: 24px; }
+  pre { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; }
+  .no-data { color: #c62828; margin-top: 20px; }
+  .used-urls { color: #666; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <a class="back" href="/">&larr; 다시 분석하기</a>
+  <h1>틈새 주제 추천 결과</h1>
+
+  {% if input_urls %}
+  <p class="used-urls">추가 분석 링크: {{ input_urls | join(', ') }}</p>
+  {% endif %}
+
+  {% if not has_data %}
+    <p class="no-data">수집된 데이터가 없어 결과를 생성하지 못했습니다. 아래 실행 로그를 확인하세요.</p>
+  {% elif not niche_items %}
+    <p class="no-data">틈새 주제로 분류될 키워드가 없습니다. (모두 기존 주제와 겹치거나 데이터 부족)</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th class="rank">순위</th>
+          <th>주제</th>
+          <th>카테고리</th>
+          <th>점수</th>
+          <th>언급 횟수</th>
+          <th>경쟁도</th>
+          <th>개요</th>
+          <th>예상 연관 키워드</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in niche_items %}
+        <tr>
+          <td class="rank">{{ item.rank }}</td>
+          <td>{{ item.topic }}</td>
+          <td>{{ item.category }}</td>
+          <td>{{ item.score }}</td>
+          <td>{{ item.freq }}</td>
+          <td class="comp-{{ item.competition }}">{{ item.competition }}</td>
+          <td>{{ item.overview }}</td>
+          <td>{{ item.related_keywords | join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if output_files.chart %}
+    <img class="chart" src="/output/{{ output_files.chart }}" alt="트렌드 차트">
+    {% endif %}
+  {% endif %}
+
+  <div class="downloads">
+    {% if output_files.report %}<a href="/output/{{ output_files.report }}">리포트 다운로드</a>{% endif %}
+    {% if output_files.chart %}<a href="/output/{{ output_files.chart }}">트렌드 차트 다운로드</a>{% endif %}
+    {% if output_files.summary %}<a href="/output/{{ output_files.summary }}">요약 다운로드</a>{% endif %}
+    {% if output_files.csv %}<a href="/output/{{ output_files.csv }}">원본 데이터(CSV) 다운로드</a>{% endif %}
+  </div>
+
+  <details>
+    <summary>실행 로그 보기</summary>
+    <pre>{{ log_text }}</pre>
+  </details>
+</body>
+</html>

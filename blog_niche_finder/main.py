@@ -129,39 +129,90 @@ def search_google(keyword, max_results):
         return None
 
 
-def search_duckduckgo(keyword, max_results):
-    """DuckDuckGo HTML 검색으로 site:blog.naver.com 결과 수집. 실패 시 None 반환."""
+def search_duckduckgo_html(keyword, max_results):
+    """DuckDuckGo HTML 버전 검색 1회 시도. 상태코드와 결과를 튜플로 반환."""
     query = f'"{keyword}" site:blog.naver.com'
     headers = {"User-Agent": config.USER_AGENT}
 
+    resp = requests.post(
+        "https://html.duckduckgo.com/html/",
+        data={"q": query},
+        headers=headers,
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        return resp.status_code, None
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    results = []
+    for result in soup.select("div.result"):
+        a_tag = result.select_one("a.result__a")
+        if a_tag:
+            url = a_tag.get("href", "")
+            title = a_tag.get_text(strip=True)
+            if "blog.naver.com" in url and title:
+                results.append({"title": title, "url": url})
+        if len(results) >= max_results:
+            break
+
+    return resp.status_code, (results or None)
+
+
+def search_duckduckgo_lite(keyword, max_results):
+    """DuckDuckGo Lite 버전 검색 폴백. 실패 시 None 반환."""
+    query = f'"{keyword}" site:blog.naver.com'
+    headers = {"User-Agent": config.USER_AGENT}
+
+    resp = requests.get(
+        "https://lite.duckduckgo.com/lite/",
+        params={"q": query},
+        headers=headers,
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        return None
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    results = []
+    for a_tag in soup.find_all("a", href=True):
+        url = a_tag["href"]
+        title = a_tag.get_text(strip=True)
+        if "blog.naver.com" in url and title:
+            results.append({"title": title, "url": url})
+        if len(results) >= max_results:
+            break
+
+    return results or None
+
+
+def search_duckduckgo(keyword, max_results):
+    """
+    DuckDuckGo 검색으로 site:blog.naver.com 결과 수집. 실패 시 None 반환.
+    202(봇 차단) 응답 시 잠시 대기 후 재시도하고, 그래도 실패하면 Lite 버전으로 폴백한다.
+    """
     try:
-        resp = requests.post(
-            "https://html.duckduckgo.com/html/",
-            data={"q": query},
-            headers=headers,
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            print(f"  [DuckDuckGo] 응답 코드 {resp.status_code} (키워드: {keyword})")
-            return None
+        status, results = search_duckduckgo_html(keyword, max_results)
 
-        soup = BeautifulSoup(resp.text, "html.parser")
-        results = []
-        for result in soup.select("div.result"):
-            a_tag = result.select_one("a.result__a")
-            if a_tag:
-                url = a_tag.get("href", "")
-                title = a_tag.get_text(strip=True)
-                if "blog.naver.com" in url and title:
-                    results.append({"title": title, "url": url})
-            if len(results) >= max_results:
-                break
+        if status == 202:
+            print(f"  [DuckDuckGo] 202 차단 감지, 잠시 후 재시도 (키워드: {keyword})")
+            time.sleep(random.uniform(3, 5))
+            status, results = search_duckduckgo_html(keyword, max_results)
 
-        if not results:
+        if results:
+            return results
+
+        if status != 200:
+            print(f"  [DuckDuckGo] 응답 코드 {status} (키워드: {keyword})")
+        else:
             print(f"  [DuckDuckGo] 결과 파싱 실패 (키워드: {keyword})")
-            return None
 
-        return results
+        print(f"  -> DuckDuckGo Lite로 폴백 시도 (키워드: {keyword})")
+        lite_results = search_duckduckgo_lite(keyword, max_results)
+        if lite_results:
+            return lite_results
+
+        print(f"  [DuckDuckGo Lite] 결과 없음 (키워드: {keyword})")
+        return None
     except Exception as e:
         print(f"  [DuckDuckGo] 요청 실패 (키워드: {keyword}): {e}")
         return None
@@ -220,20 +271,22 @@ def parse_feed_date(entry):
     return None
 
 
-def collect_rss_data():
-    """RSS_BLOG_IDS의 각 블로그 RSS에서 최근 글 수집."""
+def collect_feed_sources(sources, step_label="[2/5] RSS 수집"):
+    """
+    sources: [(label, feed_url), ...] 목록의 각 피드에서 최근 글을 수집한다.
+    RSS_BLOG_IDS 기반 수집과 사용자 제공 링크 기반 수집이 이 함수를 공유한다.
+    """
     rows = []
     cutoff = datetime.now() - timedelta(days=config.RSS_RECENT_DAYS)
-    total = len(config.RSS_BLOG_IDS)
+    total = len(sources)
 
-    for idx, blog_id in enumerate(config.RSS_BLOG_IDS, start=1):
-        print(f"[2/5] RSS 수집 중... ({idx}/{total}) (블로그: {blog_id})")
-        url = f"https://rss.blog.naver.com/{blog_id}.xml"
+    for idx, (label, feed_url) in enumerate(sources, start=1):
+        print(f"{step_label} 중... ({idx}/{total}) (블로그: {label})")
         try:
-            feed = feedparser.parse(url)
+            feed = feedparser.parse(feed_url)
 
             if feed.bozo and not feed.entries:
-                print(f"[경고] '{blog_id}' RSS 파싱 실패, 건너뜁니다.")
+                print(f"[경고] '{label}' RSS 파싱 실패, 건너뜁니다.")
                 continue
 
             count = 0
@@ -247,18 +300,95 @@ def collect_rss_data():
 
                 rows.append({
                     "source": "rss",
-                    "keyword_or_blog": blog_id,
+                    "keyword_or_blog": label,
                     "title": title,
                     "url": entry.get("link", ""),
                     "date": pub_date.strftime("%Y-%m-%d") if pub_date else None,
                 })
                 count += 1
 
-            print(f"  -> {count}건 수집 완료 (블로그: {blog_id})")
+            print(f"  -> {count}건 수집 완료 (블로그: {label})")
         except Exception as e:
-            print(f"[경고] '{blog_id}' RSS 수집 중 오류 발생, 건너뜁니다: {e}")
+            print(f"[경고] '{label}' RSS 수집 중 오류 발생, 건너뜁니다: {e}")
 
     return rows
+
+
+def collect_rss_data():
+    """RSS_BLOG_IDS의 각 블로그 RSS에서 최근 글 수집."""
+    sources = [
+        (blog_id, f"https://rss.blog.naver.com/{blog_id}.xml")
+        for blog_id in config.RSS_BLOG_IDS
+    ]
+    return collect_feed_sources(sources, step_label="[2/5] RSS 수집")
+
+
+NAVER_BLOG_ID_PATTERN = re.compile(
+    r"(?:m\.)?blog\.naver\.com/(?:PostView\.naver\?blogId=)?([a-zA-Z0-9_-]+)"
+)
+
+
+def extract_naver_blog_id(url):
+    """네이버 블로그 URL에서 블로그 ID를 추출. 실패 시 None."""
+    match = NAVER_BLOG_ID_PATTERN.search(url)
+    if match:
+        return match.group(1)
+    return None
+
+
+def discover_feed_link(url):
+    """HTML 페이지에서 <link rel="alternate" type="application/rss+xml"> 피드 주소를 탐색."""
+    try:
+        resp = requests.get(url, headers={"User-Agent": config.USER_AGENT}, timeout=10)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.text, "html.parser")
+        link_tag = soup.find("link", attrs={"type": "application/rss+xml"})
+        if link_tag and link_tag.get("href"):
+            href = link_tag["href"]
+            if href.startswith("http"):
+                return href
+        return None
+    except Exception:
+        return None
+
+
+def resolve_link_to_feed_source(url):
+    """
+    사용자가 입력한 링크를 (라벨, 피드URL) 튜플로 변환한다.
+    네이버 블로그/RSS 링크, 일반 사이트의 RSS 피드 탐색을 순서대로 시도. 실패 시 None.
+    """
+    url = url.strip()
+    if not url:
+        return None
+
+    if url.endswith(".xml") or "rss.blog.naver.com" in url:
+        label = extract_naver_blog_id(url) or url
+        return label, url
+
+    blog_id = extract_naver_blog_id(url)
+    if blog_id:
+        return blog_id, f"https://rss.blog.naver.com/{blog_id}.xml"
+
+    feed_url = discover_feed_link(url)
+    if feed_url:
+        return url, feed_url
+
+    return url, url
+
+
+def collect_link_data(urls):
+    """사용자가 입력한 링크(최대 5개)를 분석용 소스로 변환해 최근 글을 수집."""
+    sources = []
+    for url in urls[:5]:
+        resolved = resolve_link_to_feed_source(url)
+        if resolved:
+            sources.append(resolved)
+
+    if not sources:
+        return []
+
+    return collect_feed_sources(sources, step_label="[링크] 사용자 지정 링크 수집")
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +417,11 @@ STOPWORDS = {
     "빠르게", "간단", "기본", "이해", "완전", "필수", "꿀팁", "노하우",
     "오늘", "최근", "요즘", "진짜", "정말", "그냥", "너무", "우리",
     "그리고", "하지만", "그래서", "때문", "관련", "대해", "대한",
+    "만들기", "만드는", "대상", "무료", "특강", "강의", "활용", "사용",
+    "배우는", "가지", "이제", "이게", "되네", "합니다", "하세요",
+    "있는", "없는", "있나요", "여러", "초보", "초보자", "사람", "모든",
+    "바로", "함께", "통해", "위해", "순삭", "안내", "모집", "신청",
+    "강좌", "수업", "과정", "시간", "하나",
     "with", "for", "the", "and", "how", "to",
 }
 
@@ -377,30 +512,68 @@ def build_keyword_stats(df):
 
 
 def filter_out_my_topics(keyword_freq, my_keywords):
-    """MY_TOPICS와 겹치는 키워드 제외."""
+    """MY_TOPICS와 겹치는 키워드 제외 (부분 일치 기준)."""
+    my_keywords_lower = [mk.lower() for mk in my_keywords]
+
+    def overlaps_my_topics(kw):
+        kw_lower = kw.lower()
+        return any(mk in kw_lower or kw_lower in mk for mk in my_keywords_lower)
+
     return {
         kw: freq for kw, freq in keyword_freq.items()
-        if kw not in my_keywords
+        if not overlaps_my_topics(kw)
     }
+
+
+def detect_branding_keywords(df, keyword_sources, keyword_titles):
+    """
+    단일 소스에서만 등장하고, 그 소스 제목의 30% 이상에서 반복 등장하는
+    키워드를 블로거 닉네임 등 브랜딩/시그니처 단어로 간주해 반환한다.
+    """
+    source_title_counts = df["keyword_or_blog"].value_counts().to_dict()
+    branding = set()
+
+    for kw, sources in keyword_sources.items():
+        if len(sources) != 1:
+            continue
+        only_source = next(iter(sources))
+        total = source_title_counts.get(only_source, 0)
+        if total <= 0:
+            continue
+        occurrence = len(keyword_titles.get(kw, []))
+        if occurrence / total >= 0.3:
+            branding.add(kw)
+
+    return branding
 
 
 def select_top_niche_topics(keyword_freq, keyword_sources, keyword_titles, top_n):
     """
     score = 빈도 / (1 + 언급한 소스 수) 로 틈새 주제 TOP N 선정.
+    우연히 1~2회만 등장한 키워드가 상위에 오르지 않도록 최소 빈도(3회) 이상만
+    후보로 삼되, 후보가 top_n에 못 미치면 최소 빈도를 2회로 완화한다.
     """
-    scored = []
-    for kw, freq in keyword_freq.items():
-        source_count = len(keyword_sources.get(kw, set()))
-        score = freq / (1 + source_count)
-        scored.append({
-            "keyword": kw,
-            "freq": freq,
-            "source_count": source_count,
-            "score": score,
-            "titles": keyword_titles.get(kw, []),
-        })
+    def build_scored(min_freq):
+        scored = []
+        for kw, freq in keyword_freq.items():
+            if freq < min_freq:
+                continue
+            source_count = len(keyword_sources.get(kw, set()))
+            score = freq / (1 + source_count)
+            scored.append({
+                "keyword": kw,
+                "freq": freq,
+                "source_count": source_count,
+                "score": score,
+                "titles": keyword_titles.get(kw, []),
+            })
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored
 
-    scored.sort(key=lambda x: x["score"], reverse=True)
+    scored = build_scored(min_freq=3)
+    if len(scored) < top_n:
+        scored = build_scored(min_freq=2)
+
     return scored[:top_n]
 
 
@@ -443,13 +616,14 @@ def generate_topic_overview(rank, topic_keyword, category, freq, comp_level, rel
     return overview
 
 
-def build_niche_report_items(top_topics, my_keywords):
+def build_niche_report_items(top_topics, my_keywords, branding_keywords=None):
     """TOP N 각각에 대해 순위, 카테고리, 개요, 연관 키워드 등을 조립."""
+    exclude = set(my_keywords) | set(branding_keywords or [])
     items = []
     for i, topic in enumerate(top_topics, start=1):
         kw = topic["keyword"]
         titles = topic["titles"]
-        related = build_related_keywords(kw, titles, exclude=my_keywords, limit=5)
+        related = build_related_keywords(kw, titles, exclude=exclude, limit=5)
         related = related if related else ["-"]
         keywords_in_titles = []
         for t in titles:
@@ -573,7 +747,7 @@ def generate_md_report(niche_items, output_path):
 
 
 def create_report(niche_items):
-    """PDF 생성 시도, 폰트 없으면 .md로 폴백."""
+    """PDF 생성 시도, 폰트 없으면 .md로 폴백. 실제로 저장된 파일 경로를 반환한다."""
     font_path = find_korean_font()
     pdf_path = os.path.join(config.OUTPUT_DIR, config.REPORT_PDF_FILENAME)
 
@@ -582,16 +756,18 @@ def create_report(niche_items):
         md_path = os.path.splitext(pdf_path)[0] + ".md"
         generate_md_report(niche_items, md_path)
         print(f"  -> 저장 완료: {md_path}")
-        return
+        return md_path
 
     try:
         generate_pdf_report(niche_items, pdf_path, font_path)
         print(f"  -> 저장 완료: {pdf_path}")
+        return pdf_path
     except Exception as e:
         print(f"[경고] PDF 생성 실패, Markdown으로 대체 저장합니다: {e}")
         md_path = os.path.splitext(pdf_path)[0] + ".md"
         generate_md_report(niche_items, md_path)
         print(f"  -> 저장 완료: {md_path}")
+        return md_path
 
 
 # ---------------------------------------------------------------------------
@@ -675,10 +851,19 @@ def create_summary_txt(niche_items, output_path):
 # 메인 실행 흐름
 # ---------------------------------------------------------------------------
 
-def main():
-    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+def run_pipeline(extra_links=None):
+    """
+    전체 파이프라인 실행 (검색+RSS+선택적 사용자 링크 수집 -> 분석 -> 결과물 생성).
+    CLI(main)와 웹앱(app.py)이 공유한다.
 
-    all_rows = []
+    반환: {
+        "has_data": bool,
+        "niche_items": [...],
+        "output_paths": {"csv": str, "report": str, "chart": str, "summary": str},
+    }
+    """
+    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+    result = {"has_data": False, "niche_items": [], "output_paths": {}}
 
     # 1. 데이터 수집
     try:
@@ -693,47 +878,66 @@ def main():
         print(f"[경고] RSS 수집 단계 전체 실패: {e}")
         rss_rows = []
 
-    all_rows = search_rows + rss_rows
+    link_rows = []
+    if extra_links:
+        try:
+            link_rows = collect_link_data(extra_links)
+        except Exception as e:
+            print(f"[경고] 링크 수집 단계 전체 실패: {e}")
+            link_rows = []
 
     print("[3/5] 수집 데이터 통합 중...")
-    df = build_dataframe(search_rows, rss_rows)
+    df = build_dataframe(search_rows, rss_rows + link_rows)
 
     if df.empty:
         print("수집된 데이터가 하나도 없습니다. 프로그램을 종료합니다.")
-        return
+        return result
+
+    result["has_data"] = True
 
     csv_path = os.path.join(config.OUTPUT_DIR, config.COLLECTED_DATA_CSV_FILENAME)
     try:
         df.to_csv(csv_path, index=False, encoding="utf-8-sig")
         print(f"  -> 원본 데이터 저장 완료: {csv_path}")
+        result["output_paths"]["csv"] = csv_path
     except Exception as e:
         print(f"[경고] 원본 데이터 CSV 저장 실패: {e}")
 
     # 2. 분석
     print("[4/5] 키워드 분석 및 틈새 주제 선정 중...")
+    keyword_freq = {}
+    niche_items = []
     try:
         keyword_freq, keyword_sources, keyword_titles = build_keyword_stats(df)
         my_keywords = get_my_topic_keywords()
         filtered_freq = filter_out_my_topics(keyword_freq, my_keywords)
 
+        branding_keywords = detect_branding_keywords(df, keyword_sources, keyword_titles)
+        if branding_keywords:
+            print(f"[정보] 브랜딩 키워드 제외: {', '.join(sorted(branding_keywords))}")
+            filtered_freq = {
+                kw: freq for kw, freq in filtered_freq.items()
+                if kw not in branding_keywords
+            }
+
         if not filtered_freq:
             print("틈새 주제로 분류될 키워드가 없습니다. (모두 기존 주제와 겹치거나 데이터 부족)")
-            niche_items = []
         else:
             top_topics = select_top_niche_topics(
                 filtered_freq, keyword_sources, keyword_titles, config.TOP_N_NICHE_TOPICS
             )
-            niche_items = build_niche_report_items(top_topics, my_keywords)
+            niche_items = build_niche_report_items(top_topics, my_keywords, branding_keywords)
     except Exception as e:
         print(f"[경고] 분석 단계 실패: {e}")
-        keyword_freq = {}
-        niche_items = []
+
+    result["niche_items"] = niche_items
 
     # 3. 결과물 생성
     print("[5/5] 결과물 생성 중...")
 
     try:
-        create_report(niche_items)
+        report_path = create_report(niche_items)
+        result["output_paths"]["report"] = report_path
     except Exception as e:
         print(f"[경고] PDF/MD 리포트 생성 실패: {e}")
 
@@ -742,6 +946,7 @@ def main():
         chart_path = os.path.join(config.OUTPUT_DIR, config.TREND_CHART_FILENAME)
         create_trend_chart(keyword_freq, niche_items, chart_path, font_path)
         print(f"  -> 트렌드 차트 저장 완료: {chart_path}")
+        result["output_paths"]["chart"] = chart_path
     except Exception as e:
         print(f"[경고] 트렌드 차트 생성 실패: {e}")
 
@@ -749,10 +954,16 @@ def main():
         summary_path = os.path.join(config.OUTPUT_DIR, config.SUMMARY_TXT_FILENAME)
         create_summary_txt(niche_items, summary_path)
         print(f"  -> 요약 저장 완료: {summary_path}")
+        result["output_paths"]["summary"] = summary_path
     except Exception as e:
         print(f"[경고] 요약 생성 실패: {e}")
 
     print("모든 작업이 완료되었습니다.")
+    return result
+
+
+def main():
+    run_pipeline()
 
 
 if __name__ == "__main__":
