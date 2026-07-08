@@ -57,6 +57,10 @@ class Project:
     deployed_url: str = ""
     style: StyleGuide = field(default_factory=StyleGuide)
     copy: Copy = field(default_factory=Copy)
+    google_form_action: str = ""
+    google_form_entry_name: str = ""
+    google_form_entry_email: str = ""
+    google_form_entry_phone: str = ""
 
 
 def slugify(name: str) -> str:
@@ -91,6 +95,10 @@ def _project_from_dict(data: dict) -> Project:
         deployed_url=data.get("deployed_url", ""),
         style=StyleGuide(**data.get("style", {})),
         copy=Copy(**data.get("copy", {})),
+        google_form_action=data.get("google_form_action", ""),
+        google_form_entry_name=data.get("google_form_entry_name", ""),
+        google_form_entry_email=data.get("google_form_entry_email", ""),
+        google_form_entry_phone=data.get("google_form_entry_phone", ""),
     )
 
 
