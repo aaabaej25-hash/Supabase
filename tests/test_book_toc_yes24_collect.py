@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from book_toc.yes24 import Yes24Error, collect_books
@@ -90,3 +92,28 @@ def test_collect_books_skips_failed_detail_pages():
     client.get = get
     books = collect_books("재테크", count=5, delay=0, client=client)
     assert [b.title for b in books] == ["책2", "책3"]
+
+
+def test_collect_books_sleeps_between_every_request_including_failures():
+    client = FakeClient({
+        # Goods/1 은 pages에 없어서 get이 예외 발생 → 실패 경로
+        "https://www.yes24.com/Product/Goods/2": FakeResponse(detail_html("책2", "1장")),
+        "https://www.yes24.com/Product/Goods/3": FakeResponse(detail_html("책3", "1장")),
+    })
+    orig_get = client.get
+
+    def get(url, **kwargs):
+        if url.startswith("https://www.yes24.com/Product/Search"):
+            return FakeResponse(SEARCH_HTML)
+        return orig_get(url, **kwargs)
+
+    client.get = get
+
+    with patch("book_toc.yes24.time.sleep") as mock_sleep:
+        books = collect_books("재테크", count=5, delay=1, client=client)
+
+    assert [b.title for b in books] == ["책2", "책3"]
+    # 검색 -> 첫 상세 요청, 실패한 Goods/1 요청, 성공한 Goods/2·3 요청까지
+    # 상세 요청 3건(실패 1건 포함) 각각의 앞에서 대기가 걸려야 한다.
+    assert mock_sleep.call_count == 3
+    assert all(call.args == (1,) for call in mock_sleep.call_args_list)

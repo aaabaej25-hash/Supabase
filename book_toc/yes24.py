@@ -86,7 +86,7 @@ def collect_books(
         try:
             search_html = _fetch(client, str(search_url))
         except Exception as e:
-            raise Yes24Error(f"예스24 검색 요청 실패: {e}")
+            raise Yes24Error(f"예스24 검색 요청 실패: {e}") from e
 
         urls = parse_search_results(search_html)
         if not urls:
@@ -96,6 +96,10 @@ def collect_books(
         for url in urls[:max_try]:
             if len(books) >= count:
                 break
+            # 요청 간 대기: 성공/실패와 무관하게 매 상세 요청 전에 적용
+            # (루프의 첫 반복에서는 검색 요청과 첫 상세 요청 사이의 대기 역할도 함)
+            if delay:
+                time.sleep(delay)
             try:
                 html = _fetch(client, url)
                 book = parse_book_detail(html, url)
@@ -105,8 +109,6 @@ def collect_books(
                 continue  # 개별 책 실패는 건너뜀
             if book.toc.strip():
                 books.append(book)
-            if delay:
-                time.sleep(delay)
         return books
     finally:
         if own_client:
