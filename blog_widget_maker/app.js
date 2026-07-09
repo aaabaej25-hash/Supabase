@@ -1,5 +1,6 @@
 import { renderProfileWidgetCode, renderMenuWidgetCode } from './widget-templates.js';
 import { ICON_KEYS } from './icons.js';
+import { createCropController, TARGETS } from './cropper.js';
 
 const MAX_MENUS = 5;
 
@@ -158,3 +159,54 @@ el('addMenuBtn').addEventListener('click', () => {
 
 renderMenuList();
 renderAll();
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+let pcController = null;
+let mobileController = null;
+
+el('bgImageInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  const warning = el('bgImageWarning');
+  warning.hidden = true;
+  if (!file) return;
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    warning.textContent = 'JPG, PNG, WEBP 파일만 업로드할 수 있습니다.';
+    warning.hidden = false;
+    e.target.value = '';
+    return;
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    warning.textContent = '파일 크기는 10MB를 넘을 수 없습니다.';
+    warning.hidden = false;
+    e.target.value = '';
+    return;
+  }
+  const img = new Image();
+  img.onload = () => {
+    pcController = createCropController({ canvas: el('cropCanvasPC'), image: img, target: TARGETS.pc });
+    mobileController = createCropController({ canvas: el('cropCanvasMobile'), image: img, target: TARGETS.mobile });
+    el('downloadPCBtn').disabled = false;
+    el('downloadMobileBtn').disabled = false;
+  };
+  img.src = URL.createObjectURL(file);
+});
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+el('downloadPCBtn').addEventListener('click', () => {
+  if (!pcController) return;
+  pcController.toBlob((blob) => downloadBlob(blob, 'bg-pc-1920x700.png'));
+});
+el('downloadMobileBtn').addEventListener('click', () => {
+  if (!mobileController) return;
+  mobileController.toBlob((blob) => downloadBlob(blob, 'bg-mobile-700x700.png'));
+});

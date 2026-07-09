@@ -15,7 +15,7 @@ python -m http.server 8200 --directory blog_widget_maker
 ## 테스트
 
 ```
-node --test blog_widget_maker/tests
+node --test blog_widget_maker/tests/*.test.js
 ```
 
 ## 사용 흐름
