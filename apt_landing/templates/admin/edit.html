@@ -11,6 +11,19 @@
   <label>특장점 메모 <textarea name="highlights" rows="3">{{ project.highlights }}</textarea></label>
   <label>카카오톡 문의 링크 (채널 또는 오픈채팅) <input type="text" name="kakao_link" value="{{ project.kakao_link }}"></label>
   <label>참고 랜딩페이지 URL (선택) <input type="text" name="reference_url" value="{{ project.reference_url }}"></label>
+
+  <h3 style="margin-top:1.5rem">신청폼 연동 (구글폼)</h3>
+  <p style="font-size:.85rem;color:#666">
+    아래 4가지를 채우면 랜딩페이지의 "카카오톡으로 문의하기" 버튼이 이름·이메일·전화번호를 받는 신청폼으로 바뀝니다.
+    비워두면 기존 카카오톡 링크가 그대로 노출됩니다.<br>
+    제출 URL은 구글폼 미리보기 페이지에서 우클릭 → 페이지 소스 보기 → <code>action="https://docs.google.com/forms/d/e/.../formResponse"</code> 부분을 복사하세요.<br>
+    각 entry ID는 같은 소스에서 이름/이메일/전화번호 입력칸의 <code>name="entry.숫자"</code> 값을 확인하세요.
+  </p>
+  <label>제출 URL (formResponse) <input type="text" name="google_form_action" value="{{ project.google_form_action }}" placeholder="https://docs.google.com/forms/d/e/xxx/formResponse"></label>
+  <label>이름 entry ID <input type="text" name="google_form_entry_name" value="{{ project.google_form_entry_name }}" placeholder="entry.123456789"></label>
+  <label>이메일 entry ID <input type="text" name="google_form_entry_email" value="{{ project.google_form_entry_email }}" placeholder="entry.234567890"></label>
+  <label>전화번호 entry ID <input type="text" name="google_form_entry_phone" value="{{ project.google_form_entry_phone }}" placeholder="entry.345678901"></label>
+
   <button type="submit">저장</button>
 </form>
 

@@ -79,11 +79,17 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
     @app.post("/p/{slug}")
     def save(request: Request, slug: str, name: str = Form(""), address: str = Form(""),
              move_in: str = Form(""), highlights: str = Form(""), units_text: str = Form(""),
-             kakao_link: str = Form(""), reference_url: str = Form("")):
+             kakao_link: str = Form(""), reference_url: str = Form(""),
+             google_form_action: str = Form(""), google_form_entry_name: str = Form(""),
+             google_form_entry_email: str = Form(""), google_form_entry_phone: str = Form("")):
         p = load_project(cfg.projects_dir, slug)
         p.name, p.address, p.move_in = name.strip(), address.strip(), move_in.strip()
         p.highlights, p.kakao_link, p.reference_url = highlights.strip(), kakao_link.strip(), reference_url.strip()
         p.units = _parse_units(units_text)
+        p.google_form_action = google_form_action.strip()
+        p.google_form_entry_name = google_form_entry_name.strip()
+        p.google_form_entry_email = google_form_entry_email.strip()
+        p.google_form_entry_phone = google_form_entry_phone.strip()
         save_project(cfg.projects_dir, p)
         return render("edit.html", request, project=p, error="", notice="저장했습니다.")
 

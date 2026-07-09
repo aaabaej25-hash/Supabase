@@ -24,6 +24,13 @@ th { background: var(--primary); color: #fff; }
 .cta { text-align: center; background: var(--primary); color: #fff; max-width: none; }
 .cta a { display: inline-block; margin-top: 1.2rem; padding: 1rem 2.5rem; border-radius: 999px;
   background: #FEE500; color: #191919; font-weight: bold; font-size: 1.15rem; text-decoration: none; }
+.apply-form { max-width: 360px; margin: 1.2rem auto 0; display: flex; flex-direction: column; gap: .7rem; text-align: left; }
+.apply-form input { padding: .8rem 1rem; border-radius: 8px; border: none; font-size: 1rem; }
+.apply-form .apply-error { color: #ffd7d7; background: rgba(0,0,0,.25); border-radius: 8px;
+  padding: .6rem .9rem; font-size: .9rem; margin: 0; }
+.apply-form button { padding: .9rem 1rem; border: none; border-radius: 999px; background: #FEE500;
+  color: #191919; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+.apply-thanks { margin-top: 1.2rem; font-size: 1.2rem; font-weight: bold; }
 footer { text-align: center; padding: 1.5rem; color: #999; font-size: .85rem; }
 </style>
 </head>
@@ -69,7 +76,50 @@ footer { text-align: center; padding: 1.5rem; color: #999; font-size: .85rem; }
 <section class="cta">
   <h2 style="color:#fff;border-color:var(--accent)">문의하기</h2>
   <p>{{ project.highlights }}</p>
+  {% if project.google_form_action and project.google_form_entry_name and project.google_form_entry_email and project.google_form_entry_phone %}
+  <div id="apply-box">
+    <form id="apply-form" class="apply-form"
+          data-action="{{ project.google_form_action }}"
+          data-entry-name="{{ project.google_form_entry_name }}"
+          data-entry-email="{{ project.google_form_entry_email }}"
+          data-entry-phone="{{ project.google_form_entry_phone }}">
+      <input type="text" name="name" placeholder="이름">
+      <input type="email" name="email" placeholder="이메일">
+      <input type="tel" name="phone" placeholder="전화번호">
+      <p class="apply-error" hidden>이름, 이메일, 전화번호를 모두 입력해주세요.</p>
+      <button type="submit">신청하기</button>
+    </form>
+  </div>
+  <script>
+  (function () {
+    var form = document.getElementById("apply-form");
+    var box = document.getElementById("apply-box");
+    var errorEl = form.querySelector(".apply-error");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = form.name.value.trim();
+      var email = form.email.value.trim();
+      var phone = form.phone.value.trim();
+      if (!name || !email || !phone) {
+        errorEl.hidden = false;
+        return;
+      }
+      errorEl.hidden = true;
+      var data = new FormData();
+      data.append(form.dataset.entryName, name);
+      data.append(form.dataset.entryEmail, email);
+      data.append(form.dataset.entryPhone, phone);
+      fetch(form.dataset.action, { method: "POST", mode: "no-cors", body: data })
+        .catch(function () {})
+        .finally(function () {
+          box.innerHTML = '<p class="apply-thanks">감사합니다! 신청이 접수되었습니다.</p>';
+        });
+    });
+  })();
+  </script>
+  {% else %}
   <a href="{{ project.kakao_link }}">{{ copy.cta_text or "카카오톡으로 문의하기" }}</a>
+  {% endif %}
 </section>
 <footer>{{ project.name }}</footer>
 </body>
