@@ -18,6 +18,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "5500", "--directory", "C:/dev/todolist"],
       "port": 5500
+    },
+    {
+      "name": "apt_landing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "apt_landing"],
+      "port": 8000
     }
   ]
 }
