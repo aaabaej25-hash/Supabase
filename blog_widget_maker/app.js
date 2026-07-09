@@ -210,3 +210,17 @@ el('downloadMobileBtn').addEventListener('click', () => {
   if (!mobileController) return;
   mobileController.toBlob((blob) => downloadBlob(blob, 'bg-mobile-700x700.png'));
 });
+
+function isLikelyUrl(value) {
+  return /^https?:\/\//i.test(value.trim());
+}
+
+function bindUrlWarning(inputId, warningId) {
+  const input = el(inputId);
+  const warning = el(warningId);
+  input.addEventListener('blur', () => {
+    warning.hidden = input.value.trim() === '' || isLikelyUrl(input.value);
+  });
+}
+
+bindUrlWarning('profileImageUrl', 'profileImageUrlWarning');
