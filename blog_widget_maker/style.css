@@ -1,0 +1,102 @@
+:root {
+  --bwm-accent: #00a3ff;
+  --bwm-border: #ddd;
+  --bwm-bg: #fafafa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Pretendard", "Malgun Gothic", sans-serif;
+  background: var(--bwm-bg);
+  color: #222;
+}
+.bwm-header {
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 1px solid var(--bwm-border);
+}
+.bwm-header h1 { margin: 0 0 4px; font-size: 20px; }
+.bwm-header p { margin: 0; color: #666; font-size: 14px; }
+.bwm-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.bwm-panel {
+  background: #fff;
+  border: 1px solid var(--bwm-border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.bwm-panel h2 { margin-top: 0; font-size: 16px; }
+.bwm-panel label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #444;
+}
+.bwm-panel input[type="text"],
+.bwm-panel input[type="url"],
+.bwm-panel input[type="tel"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid var(--bwm-border);
+  border-radius: 4px;
+  font-size: 14px;
+}
+.bwm-warning {
+  display: block;
+  color: #d1451f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.bwm-warning[hidden] {
+  display: none;
+}
+.bwm-color-presets { display: flex; gap: 8px; margin-bottom: 8px; }
+.bwm-color-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--bwm-border);
+  cursor: pointer;
+}
+.bwm-menu-item-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.bwm-menu-item-row select { width: 90px; }
+.bwm-menu-item-row input { flex: 1; padding: 6px; }
+.bwm-code-block { margin-bottom: 24px; }
+.bwm-code-header { display: flex; justify-content: space-between; align-items: center; }
+.bwm-code-block pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.bwm-preview-frame {
+  width: 100%;
+  height: 140px;
+  border: 1px dashed var(--bwm-border);
+  border-radius: 6px;
+}
+.bwm-crop-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.bwm-crop-row canvas {
+  border: 1px solid var(--bwm-border);
+  cursor: grab;
+  touch-action: none;
+}
+#checklist-section ol { padding-left: 20px; }
+#checklist-section li { margin-bottom: 8px; }
