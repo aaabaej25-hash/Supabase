@@ -49,6 +49,11 @@ body {
   border-radius: 4px;
   font-size: 14px;
 }
+.bwm-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #777;
+}
 .bwm-warning {
   display: block;
   color: #d1451f;

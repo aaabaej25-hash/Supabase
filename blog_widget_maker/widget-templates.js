@@ -1,12 +1,5 @@
 import { getIconSvg } from './icons.js';
 
-const QUICK_LINK_DEFS = [
-  { key: 'home', label: '홈', icon: 'home' },
-  { key: 'blogMap', label: '블로그맵', icon: 'map' },
-  { key: 'reserve', label: '예약하기', icon: 'reserve' },
-  { key: 'phone', label: '전화걸기', icon: 'phone' },
-];
-
 export function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -26,11 +19,12 @@ export function renderProfileWidgetCode(state) {
     ? escapeHtml(state.profileImageUrl.trim())
     : '';
   const bg = state.bgColor || '#ffffff';
-  const links = state.quickLinks || {};
+  const menus = Array.isArray(state.menus) ? state.menus.slice(0, 5) : [];
 
-  const linkItems = QUICK_LINK_DEFS.map((def) => {
-    const url = links[def.key] && links[def.key].trim() ? escapeHtml(links[def.key].trim()) : '#';
-    return `<a href="${url}" target="_blank" rel="noopener" class="bwm-quicklink" title="${def.label}">${getIconSvg(def.icon)}</a>`;
+  const linkItems = menus.map((m) => {
+    const url = m.url && m.url.trim() ? escapeHtml(m.url.trim()) : '#';
+    const label = m.text && m.text.trim() ? escapeHtml(m.text.trim()) : '';
+    return `<a href="${url}" target="_blank" rel="noopener" class="bwm-quicklink" title="${label}">${getIconSvg(m.icon)}</a>`;
   }).join('');
 
   return [

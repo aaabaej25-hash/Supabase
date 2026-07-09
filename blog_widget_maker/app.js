@@ -11,7 +11,6 @@ function createDefaultState() {
     hours: '',
     profileImageUrl: '',
     bgColor: '#ffffff',
-    quickLinks: { home: '', blogMap: '', reserve: '', phone: '' },
     menus: [],
   };
 }
@@ -36,21 +35,10 @@ function bindTextField(id, stateKey) {
   });
 }
 
-function bindQuickLink(id, key) {
-  el(id).addEventListener('input', (e) => {
-    state.quickLinks[key] = e.target.value;
-    renderAll();
-  });
-}
-
 bindTextField('blogName', 'blogName');
 bindTextField('slogan', 'slogan');
 bindTextField('hours', 'hours');
 bindTextField('profileImageUrl', 'profileImageUrl');
-bindQuickLink('qlHome', 'home');
-bindQuickLink('qlBlogMap', 'blogMap');
-bindQuickLink('qlReserve', 'reserve');
-bindQuickLink('qlPhone', 'phone');
 
 document.querySelectorAll('.bwm-color-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
