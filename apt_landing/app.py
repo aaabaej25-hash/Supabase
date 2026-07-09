@@ -51,6 +51,11 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
     def render(name: str, request: Request, **ctx):
         return templates.TemplateResponse(request, name, ctx)
 
+    def _load(slug: str):
+        if slug != slugify(slug):
+            raise HTTPException(status_code=404, detail="매물을 찾을 수 없습니다.")
+        return load_project(cfg.projects_dir, slug)
+
     @app.exception_handler(FileNotFoundError)
     def not_found(request: Request, exc: FileNotFoundError):
         return RedirectResponse("/?error=" + quote("매물을 찾을 수 없습니다."), status_code=303)
@@ -73,7 +78,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/p/{slug}")
     def edit(request: Request, slug: str, error: str = "", notice: str = ""):
-        return render("edit.html", request, project=load_project(cfg.projects_dir, slug),
+        return render("edit.html", request, project=_load(slug),
                       error=error, notice=notice)
 
     @app.post("/p/{slug}")
@@ -82,7 +87,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
              kakao_link: str = Form(""), reference_url: str = Form(""),
              google_form_action: str = Form(""), google_form_entry_name: str = Form(""),
              google_form_entry_email: str = Form(""), google_form_entry_phone: str = Form("")):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         p.name, p.address, p.move_in = name.strip(), address.strip(), move_in.strip()
         p.highlights, p.kakao_link, p.reference_url = highlights.strip(), kakao_link.strip(), reference_url.strip()
         p.units = _parse_units(units_text)
@@ -103,7 +108,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/photos")
     def upload_photos(request: Request, slug: str, files: list[UploadFile] = File(...)):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         photo_dir = os.path.join(project_dir(cfg.projects_dir, slug), "photos")
         os.makedirs(photo_dir, exist_ok=True)
         seq = _next_photo_seq(p)
@@ -128,7 +133,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/photos/{name}/delete")
     def delete_photo(request: Request, slug: str, name: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         if name in p.photos:
             p.photos.remove(name)
             path = os.path.join(project_dir(cfg.projects_dir, slug), "photos", os.path.basename(name))
@@ -139,7 +144,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/photos/{name}/up")
     def photo_up(request: Request, slug: str, name: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         if name in p.photos:
             i = p.photos.index(name)
             if i > 0:
@@ -164,7 +169,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/p/{slug}/copy")
     def copy_page(request: Request, slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         # 미리보기 iframe이 어차피 빌드하지만, 사진 처리 실패 목록을 화면에 표시하기 위해
         # 여기서도 빌드해 failed를 수집한다 (스펙 5절: 실패한 사진은 목록에 표시)
         _build_dir, failed = build(p, cfg.projects_dir)
@@ -172,7 +177,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/style")
     def run_style(request: Request, slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         p.style = extract_style(p.reference_url, cfg.ollama_model, chat=ollama_chat)
         save_project(cfg.projects_dir, p)
         if p.style.extracted:
@@ -183,7 +188,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/copy/generate")
     def gen_copy(request: Request, slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         try:
             p.copy = generate_copy(p, cfg.ollama_model, chat=ollama_chat)
             save_project(cfg.projects_dir, p)
@@ -195,7 +200,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/copy/generate/{section}")
     def gen_section(request: Request, slug: str, section: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         try:
             setattr(p.copy, section, regenerate_section(p, section, cfg.ollama_model, chat=ollama_chat))
             save_project(cfg.projects_dir, p)
@@ -206,7 +211,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
     @app.post("/p/{slug}/copy")
     async def save_copy(request: Request, slug: str):
         form = await request.form()
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         for section in COPY_SECTIONS:
             setattr(p.copy, section, str(form.get(section, "")).strip())
         if p.status == "draft":
@@ -216,7 +221,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/preview/{slug}/")
     def preview(slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         build_dir, _failed = build(p, cfg.projects_dir)
         return FileResponse(os.path.join(build_dir, "index.html"))
 
@@ -232,12 +237,12 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.get("/p/{slug}/deploy")
     def deploy_page(request: Request, slug: str, error: str = "", notice: str = ""):
-        return render("deploy.html", request, project=load_project(cfg.projects_dir, slug),
+        return render("deploy.html", request, project=_load(slug),
                       error=error, notice=notice)
 
     @app.post("/p/{slug}/deploy")
     def run_deploy(request: Request, slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         try:
             _build_dir, failed = build(p, cfg.projects_dir)
             p.deployed_url = deploy(p, cfg)
@@ -250,7 +255,7 @@ def create_app(cfg: AptConfig | None = None) -> FastAPI:
 
     @app.post("/p/{slug}/undeploy")
     def run_undeploy(request: Request, slug: str):
-        p = load_project(cfg.projects_dir, slug)
+        p = _load(slug)
         try:
             undeploy(slug, cfg)
             p.deployed_url = ""

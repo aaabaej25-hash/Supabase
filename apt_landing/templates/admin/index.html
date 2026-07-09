@@ -11,7 +11,7 @@
   {% for p in projects %}
   <tr>
     <td><a href="/p/{{ p.slug }}">{{ p.name }}</a></td>
-    <td>{{ {"draft": "초안", "copy_done": "카피 확정", "deployed": "배포됨"}[p.status] }}</td>
+    <td>{{ {"draft": "초안", "copy_done": "카피 확정", "deployed": "배포됨"}.get(p.status, p.status) }}</td>
     <td>{% if p.deployed_url %}<a href="{{ p.deployed_url }}" target="_blank">{{ p.deployed_url }}</a>{% endif %}</td>
   </tr>
   {% endfor %}

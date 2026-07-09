@@ -93,3 +93,9 @@ def test_preview_photo_missing_file_returns_404(tmp_path):
     client, cfg = make_client(tmp_path)
     r = client.get("/preview/테스트/photos/없는파일.webp")
     assert r.status_code == 404
+
+
+def test_preview_traversal_slug_returns_404(tmp_path):
+    client, cfg = make_client(tmp_path)
+    r = client.get("/preview/Bad..Slug/", follow_redirects=False)
+    assert r.status_code == 404

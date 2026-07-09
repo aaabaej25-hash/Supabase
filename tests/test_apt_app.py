@@ -7,7 +7,7 @@ from PIL import Image
 
 from apt_landing.app import create_app
 from apt_landing.config import AptConfig
-from apt_landing.models import load_project
+from apt_landing.models import load_project, save_project
 
 
 def make_client(tmp_path):
@@ -122,3 +122,14 @@ def test_photo_file_missing_file_returns_404(tmp_path):
     client.post("/projects", data={"name": "테스트"})
     r = client.get("/p/테스트/photo-file/없는파일.png")
     assert r.status_code == 404
+
+
+def test_index_renders_unknown_status(tmp_path):
+    client, cfg = make_client(tmp_path)
+    client.post("/projects", data={"name": "테스트"})
+    p = load_project(cfg.projects_dir, "테스트")
+    p.status = "이상한값"
+    save_project(cfg.projects_dir, p)
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "이상한값" in r.text
