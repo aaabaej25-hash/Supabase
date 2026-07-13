@@ -144,12 +144,13 @@ function renderHistory() {
 function restoreEntry(entry) {
   els.original.value = entry.original;
   els.resultInput.value = entry.result;
-  els.situation.value = entry.options.situation ?? '';
+  const opts = entry.options ?? {};
+  els.situation.value = opts.situation ?? '';
   for (const input of document.querySelectorAll('input[name="style"]')) {
-    input.checked = (entry.options.styles ?? []).includes(input.value);
+    input.checked = (opts.styles ?? []).includes(input.value);
   }
   for (const input of document.querySelectorAll('input[name="platform"]')) {
-    input.checked = (entry.options.platforms ?? []).includes(input.value);
+    input.checked = (opts.platforms ?? []).includes(input.value);
   }
   els.promptWrap.hidden = true;
   refreshInputState();
