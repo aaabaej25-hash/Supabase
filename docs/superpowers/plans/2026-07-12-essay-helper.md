@@ -18,7 +18,7 @@
 - 스타일 지침 id 4종: `psychology`, `hooking`, `warmth`, `worker`
 - 플랫폼 id 4종: `naver`, `brunch`, `instagram`, `general` — 플랫폼 미선택 시 `general` 가이드로 동작
 - 커밋 메시지는 기존 컨벤션대로 `feat(essay_helper): ...` 형식의 한국어
-- 테스트 실행은 `essay_helper/` 디렉터리에서 `node --test tests/`
+- 테스트 실행은 `essay_helper/` 디렉터리에서 `node --test`
 
 ## File Structure
 
@@ -127,7 +127,7 @@ test('플랫폼 미선택 시 general 가이드가 기본으로 들어간다', (
 
 - [ ] **Step 3: 테스트가 실패하는지 확인**
 
-Run (in `essay_helper/`): `node --test tests/`
+Run (in `essay_helper/`): `node --test`
 Expected: FAIL — `Cannot find module ... prompt-builder.js`
 
 - [ ] **Step 4: prompts.js 작성 (데이터만, 로직 없음)**
@@ -217,7 +217,7 @@ export function buildPrompt({ original, styles = [], situation = '', platforms =
 
 - [ ] **Step 6: 테스트 통과 확인**
 
-Run (in `essay_helper/`): `node --test tests/`
+Run (in `essay_helper/`): `node --test`
 Expected: PASS — 9 tests pass
 
 - [ ] **Step 7: 커밋**
@@ -330,7 +330,7 @@ test('saveEntry는 storage 쓰기 실패를 그대로 던진다', () => {
 
 - [ ] **Step 2: 테스트가 실패하는지 확인**
 
-Run (in `essay_helper/`): `node --test tests/`
+Run (in `essay_helper/`): `node --test`
 Expected: FAIL — `Cannot find module ... history.js` (Task 1 테스트 9개는 PASS)
 
 - [ ] **Step 3: history.js 작성**
@@ -381,7 +381,7 @@ export function deleteEntry(storage, id) {
 
 - [ ] **Step 4: 테스트 통과 확인**
 
-Run (in `essay_helper/`): `node --test tests/`
+Run (in `essay_helper/`): `node --test`
 Expected: PASS — 17 tests pass (Task 1의 9개 + 이번 8개)
 
 - [ ] **Step 5: 커밋**
@@ -892,7 +892,7 @@ renderHistory();
 
 - [ ] **Step 3: 전체 단위 테스트 재실행**
 
-Run (in `essay_helper/`): `node --test tests/`
+Run (in `essay_helper/`): `node --test`
 Expected: PASS — 17 tests (app.js는 테스트 대상 아님, 회귀 확인용)
 
 - [ ] **Step 4: 브라우저 수동 검증**
@@ -956,7 +956,7 @@ git commit -m "feat(essay_helper): 폼 배선·프롬프트 생성·비교 뷰·
 
 ## 테스트
 
-    node --test tests/
+    node --test
 
 ## 파일 구성
 

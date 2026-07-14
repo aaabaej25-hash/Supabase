@@ -36,6 +36,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8200", "--directory", "C:/youtube/blog_widget_maker"],
       "port": 8200
+    },
+    {
+      "name": "essay-helper",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8300", "--directory", "C:/youtube/essay_helper"],
+      "port": 8300
     }
   ]
 }
