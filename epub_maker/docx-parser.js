@@ -36,7 +36,7 @@ export function extractImages(html) {
 }
 
 const MESSAGE_RULES = [
-  [/\btext\s+box\b/i, '텍스트 상자는 본문 흐름으로 단순화되었습니다.'],
+  [/text box|textbox/i, '텍스트 상자는 본문 흐름으로 단순화되었습니다.'],
   [/column/i, '다단 배치는 한 단으로 합쳐졌습니다.'],
   [/style/i, '일부 문단 스타일이 기본 서식으로 바뀌었습니다.'],
 ];

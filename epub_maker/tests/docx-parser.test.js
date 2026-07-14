@@ -59,10 +59,15 @@ test('mammoth 경고가 한국어로 요약되고 중복이 제거된다', () =>
     { message: 'An unrecognised element was ignored: v:textbox' },
   ]);
   assert.equal(out.length, 1);
-  assert.ok(out[0].includes('지원되지 않아'));
+  assert.ok(out[0].includes('텍스트 상자'));
 });
 
 test('경고가 없으면 빈 배열을 반환한다', () => {
   assert.deepEqual(summarizeMessages([]), []);
   assert.deepEqual(summarizeMessages(undefined), []);
+});
+
+test('규칙에 없는 경고는 기본 안내 메시지를 받는다', () => {
+  const out = summarizeMessages([{ message: 'Something completely different' }]);
+  assert.deepEqual(out, ['일부 요소가 지원되지 않아 단순화되었습니다.']);
 });
