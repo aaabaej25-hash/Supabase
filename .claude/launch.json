@@ -26,6 +26,12 @@
       "port": 8000
     },
     {
+      "name": "epub-maker",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8400", "--directory", "C:/youtube/epub_maker"],
+      "port": 8400
+    },
+    {
       "name": "blog-widget-maker",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8200", "--directory", "C:/youtube/blog_widget_maker"],
