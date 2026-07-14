@@ -17,7 +17,7 @@
 - 빌드 도구 없음: 브라우저가 ES 모듈을 직접 로드
 - DOM 접근은 `app.js`(+ `cover.js`/`images.js`의 명시된 브라우저 전용 함수)에서만
 - UI 문구·테스트 이름·커밋 메시지는 한국어, 커밋은 `feat(epub_maker): ...` 형식
-- 테스트는 `node:test` + `node:assert/strict`, 실행은 `epub_maker/`에서 `node --test tests/`
+- 테스트는 `node:test` + `node:assert/strict`, 실행은 `epub_maker/`에서 `node --test`
 - launch.bat 포트: **8400** (essay_helper=8300과 충돌 방지)
 - EPUB 필수 메타데이터: 제목·저자·언어(기본 `ko`). 미입력 시 EPUB 생성 버튼 비활성
 - KoPub 폰트 파일은 저장소에 커밋하지 않는다 (사용자가 `fonts/`에 직접 배치, 없으면 기기 기본 글꼴로 동작)
@@ -1082,7 +1082,7 @@ Expected: PASS (4 tests)
 
 - [ ] **Step 5: 전체 테스트 일괄 확인 후 커밋**
 
-Run: `node --test tests/`
+Run: `node --test`
 Expected: 전체 PASS
 
 ```bash
@@ -1717,7 +1717,7 @@ cd C:/youtube/epub_maker && python tests/make_sample_docx.py
 
 - [ ] **Step 4: 전체 테스트 재확인 후 커밋**
 
-Run: `cd C:/youtube/epub_maker && node --test tests/`
+Run: `cd C:/youtube/epub_maker && node --test`
 Expected: 전체 PASS
 
 ```bash
@@ -1765,7 +1765,7 @@ fonts/README.md 참고. KoPub TTF를 fonts/에 넣으면 EPUB에 내장된다.
 
 ## 개발
 
-- 테스트: `node --test tests/`
+- 테스트: `node --test`
 - 샘플 DOCX 생성: `python tests/make_sample_docx.py`
 - 최종 확인(선택): [epubcheck](https://github.com/w3c/epubcheck) 설치 후
   `java -jar epubcheck.jar 생성파일.epub`
@@ -1774,7 +1774,7 @@ fonts/README.md 참고. KoPub TTF를 fonts/에 넣으면 EPUB에 내장된다.
 - [ ] **Step 2: 전체 테스트 + 브라우저 최종 점검**
 
 ```bash
-cd C:/youtube/epub_maker && node --test tests/
+cd C:/youtube/epub_maker && node --test
 ```
 Expected: 전체 PASS
 
