@@ -21,7 +21,7 @@ export async function compressImage(base64, mediaType, plan) {
   const img = await new Promise((resolve, reject) => {
     const el = new Image();
     el.onload = () => resolve(el);
-    el.onerror = reject;
+    el.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
     el.src = `data:${mediaType};base64,${base64}`;
   });
   const scale = plan.targetWidth / img.naturalWidth;
@@ -30,5 +30,6 @@ export async function compressImage(base64, mediaType, plan) {
   canvas.height = Math.round(img.naturalHeight * scale);
   canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', plan.quality));
+  if (!blob) throw new Error('이미지를 변환하지 못했습니다.');
   return { data: new Uint8Array(await blob.arrayBuffer()), mediaType: 'image/jpeg' };
 }
