@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPUB 메이커</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>EPUB 메이커</h1>
+  <ol id="step-indicator">
+    <li class="active">1. 문서 올리기</li>
+    <li>2. 디자인 꾸미기</li>
+    <li>3. EPUB 내려받기</li>
+  </ol>
+</header>
+<main>
+  <aside class="panel-left">
+    <section id="upload-section">
+      <div id="drop-zone" role="button" tabindex="0" aria-label="DOCX 파일 올리기">
+        <p>DOCX 파일을 끌어다 놓거나<br>클릭해서 선택하세요</p>
+        <input type="file" id="file-input" accept=".docx,.doc" hidden>
+      </div>
+      <ul id="messages" aria-live="polite"></ul>
+    </section>
+    <section>
+      <h2>책 정보</h2>
+      <form id="meta-form">
+        <label>제목 * <input id="meta-title" required></label>
+        <label>저자 * <input id="meta-author" required></label>
+        <label>ISBN <input id="meta-isbn" placeholder="9791100000000"></label>
+        <label>출판사 <input id="meta-publisher"></label>
+        <label>발행일 <input id="meta-pubdate" type="date"></label>
+        <label>책 소개 <textarea id="meta-description" rows="3"></textarea></label>
+      </form>
+    </section>
+    <section>
+      <h2>표지</h2>
+      <label>방식
+        <select id="cover-mode">
+          <option value="auto">자동 생성 (제목·저자)</option>
+          <option value="upload">이미지 업로드</option>
+          <option value="none">표지 없음</option>
+        </select>
+      </label>
+      <input type="file" id="cover-file" accept="image/jpeg,image/png" hidden>
+      <canvas id="cover-preview" width="160" height="240" aria-label="표지 미리보기"></canvas>
+      <ul id="cover-warnings" aria-live="polite"></ul>
+    </section>
+    <section>
+      <h2>챕터</h2>
+      <ol id="chapter-list"></ol>
+    </section>
+  </aside>
+  <section class="panel-center">
+    <iframe id="preview-frame" title="전자책 미리보기"></iframe>
+  </section>
+  <aside class="panel-right">
+    <section>
+      <h2>테마</h2>
+      <div id="theme-list" role="radiogroup" aria-label="테마 선택"></div>
+    </section>
+    <section>
+      <h2>세부 조정</h2>
+      <label>글꼴
+        <select id="opt-font">
+          <option value="kopub-batang">KoPub 바탕 (명조)</option>
+          <option value="kopub-dotum">KoPub 돋움 (고딕)</option>
+          <option value="device">기기 기본 글꼴</option>
+        </select>
+      </label>
+      <label>글자 크기 <input type="range" id="opt-fontsize" min="85" max="130" step="5"> <output for="opt-fontsize"></output>%</label>
+      <label>줄 간격 <input type="range" id="opt-lineheight" min="1.4" max="2.4" step="0.1"> <output for="opt-lineheight"></output></label>
+      <label>문단 간격 <input type="range" id="opt-paraspacing" min="0" max="1.5" step="0.1"> <output for="opt-paraspacing"></output>em</label>
+      <label>들여쓰기 <input type="range" id="opt-indent" min="0" max="2" step="0.5"> <output for="opt-indent"></output>em</label>
+      <label>좌우 여백 <input type="range" id="opt-margin" min="0" max="12" step="1"> <output for="opt-margin"></output>%</label>
+      <label>제목 정렬
+        <select id="opt-headingalign"><option value="center">가운데</option><option value="left">왼쪽</option></select>
+      </label>
+      <label><input type="checkbox" id="opt-divider"> 제목 아래 장식 구분선</label>
+      <label><input type="checkbox" id="opt-pagebreak"> 챕터를 새 페이지에서 시작</label>
+      <label><input type="checkbox" id="opt-keeporiginal"> 이미지 원본 유지 (압축 안 함)</label>
+    </section>
+    <section>
+      <button id="btn-download" disabled>EPUB 만들기</button>
+      <ul id="validation" aria-live="polite"></ul>
+    </section>
+  </aside>
+</main>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
