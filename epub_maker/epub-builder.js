@@ -49,13 +49,13 @@ function opfDoc(book, chapters) {
   if (m.pubDate) opt.push(`<dc:date>${escapeXml(m.pubDate)}</dc:date>`);
   if (m.description) opt.push(`<dc:description>${escapeXml(m.description)}</dc:description>`);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id" xml:lang="${m.language}">
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id" xml:lang="${escapeXml(m.language)}">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:identifier id="book-id">urn:uuid:${uuid}</dc:identifier>
+    <dc:identifier id="book-id">urn:uuid:${escapeXml(uuid)}</dc:identifier>
     <dc:title>${escapeXml(m.title)}</dc:title>
     <dc:creator>${escapeXml(m.author)}</dc:creator>
-    <dc:language>${m.language}</dc:language>
-    <meta property="dcterms:modified">${modified}</meta>
+    <dc:language>${escapeXml(m.language)}</dc:language>
+    <meta property="dcterms:modified">${escapeXml(modified)}</meta>
     ${opt.join('\n    ')}
   </metadata>
   <manifest>

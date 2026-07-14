@@ -105,3 +105,20 @@ test('uuid를 주지 않으면 자동 생성된다', () => {
   const opf = buildEpubFiles(book).get('OEBPS/content.opf');
   assert.ok(/urn:uuid:[0-9a-f-]{36}/.test(opf));
 });
+
+test('modified를 주지 않으면 UTC 초 단위 형식으로 자동 생성된다', () => {
+  const book = sampleBook();
+  delete book.meta.modified;
+  const opf = buildEpubFiles(book).get('OEBPS/content.opf');
+  const m = /property="dcterms:modified">([^<]+)</.exec(opf);
+  assert.ok(m, 'dcterms:modified가 있어야 함');
+  assert.match(m[1], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+});
+
+test('language·uuid·modified도 XML 이스케이프된다', () => {
+  const book = sampleBook();
+  book.meta.language = 'ko"><bad';
+  const opf = buildEpubFiles(book).get('OEBPS/content.opf');
+  assert.ok(!opf.includes('ko"><bad'));
+  assert.ok(opf.includes('ko&quot;&gt;&lt;bad'));
+});
