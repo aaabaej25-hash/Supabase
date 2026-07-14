@@ -36,7 +36,7 @@ async function init() {
   const saved = store.load();
   if (saved) {
     Object.assign(state.meta, saved.meta || {});
-    state.themeId = saved.themeId || 'novel';
+    state.themeId = THEMES[saved.themeId] ? saved.themeId : 'novel';
     state.options = { ...themeDefaults(state.themeId), ...(saved.options || {}) };
     state.coverMode = saved.coverMode || 'auto';
     state.keepOriginalImages = !!saved.keepOriginalImages;
@@ -224,7 +224,10 @@ function syncOptionInputs() {
   $('opt-keeporiginal').checked = state.keepOriginalImages;
   if (state.availableFonts.length === 0) {
     for (const opt of $('opt-font').options) {
-      if (opt.value !== 'device') { opt.disabled = true; opt.text += ' (fonts 폴더에 파일 없음)'; }
+      if (opt.value !== 'device') {
+        opt.disabled = true;
+        if (!opt.text.includes('(fonts')) opt.text += ' (fonts 폴더에 파일 없음)';
+      }
     }
     state.options.fontFamily = 'device';
     $('opt-font').value = 'device';
@@ -325,48 +328,57 @@ function updateDownloadEnabled() {
 
 function bindDownload() {
   $('btn-download').addEventListener('click', async () => {
-    const fonts = [];
-    for (const f of embeddedFontsForCss()) {
-      const res = await fetch(`fonts/${f.file}`);
-      fonts.push({ ...f, data: new Uint8Array(await res.arrayBuffer()) });
-    }
-    const book = {
-      meta: state.meta,
-      chapters: state.chapters,
-      images: state.images.map(({ href, mediaType, data }) => ({ href, mediaType, data })),
-      cover: await buildCoverForEpub(),
-      css: buildThemeCss(state.options, fonts),
-      fonts,
-    };
-    const files = buildEpubFiles(book);
-    const check = validateEpub(files);
-    const box = $('validation');
-    box.innerHTML = '';
-    if (!check.ok) {
-      for (const e of check.errors) {
-        const li = document.createElement('li');
-        li.className = 'error';
-        li.textContent = e;
-        box.appendChild(li);
+    try {
+      const fonts = [];
+      for (const f of embeddedFontsForCss()) {
+        const res = await fetch(`fonts/${f.file}`);
+        fonts.push({ ...f, data: new Uint8Array(await res.arrayBuffer()) });
       }
-      return;
+      const book = {
+        meta: state.meta,
+        chapters: state.chapters,
+        images: state.images.map(({ href, mediaType, data }) => ({ href, mediaType, data })),
+        cover: await buildCoverForEpub(),
+        css: buildThemeCss(state.options, fonts),
+        fonts,
+      };
+      const files = buildEpubFiles(book);
+      const check = validateEpub(files);
+      const box = $('validation');
+      box.innerHTML = '';
+      if (!check.ok) {
+        for (const e of check.errors) {
+          const li = document.createElement('li');
+          li.className = 'error';
+          li.textContent = e;
+          box.appendChild(li);
+        }
+        return;
+      }
+      const zip = new window.JSZip();
+      zip.file('mimetype', files.get('mimetype'), { compression: 'STORE' });
+      for (const [path, content] of files) {
+        if (path !== 'mimetype') zip.file(path, content);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip', compression: 'DEFLATE' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.meta.title || 'book'}.epub`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      const li = document.createElement('li');
+      li.className = 'ok';
+      li.textContent = '표준 검사를 통과했습니다. EPUB이 다운로드되었습니다.';
+      box.appendChild(li);
+      setStep(3);
+    } catch (err) {
+      const box = $('validation');
+      box.innerHTML = '';
+      const li = document.createElement('li');
+      li.className = 'error';
+      li.textContent = `EPUB 생성에 실패했습니다: ${err.message}`;
+      box.appendChild(li);
     }
-    const zip = new window.JSZip();
-    zip.file('mimetype', files.get('mimetype'), { compression: 'STORE' });
-    for (const [path, content] of files) {
-      if (path !== 'mimetype') zip.file(path, content);
-    }
-    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip', compression: 'DEFLATE' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${state.meta.title || 'book'}.epub`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    const li = document.createElement('li');
-    li.className = 'ok';
-    li.textContent = '표준 검사를 통과했습니다. EPUB이 다운로드되었습니다.';
-    box.appendChild(li);
-    setStep(3);
   });
 }
 
