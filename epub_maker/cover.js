@@ -15,21 +15,21 @@ const PALETTES = {
   minimal: { bg: '#F5F5F2', fg: '#222222' },
 };
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(/\s+/);
+export function breakLines(text, maxWidth, measure, maxLines = 4) {
+  const lines = [];
   let line = '';
-  for (const word of words) {
-    const probe = line ? `${line} ${word}` : word;
-    if (ctx.measureText(probe).width > maxWidth && line) {
-      ctx.fillText(line, x, y);
-      line = word;
-      y += lineHeight;
+  for (const ch of String(text).trim()) {
+    const probe = line + ch;
+    if (measure(probe) > maxWidth && line) {
+      lines.push(line);
+      if (lines.length === maxLines) return { lines, truncated: true };
+      line = ch === ' ' ? '' : ch;
     } else {
       line = probe;
     }
   }
-  ctx.fillText(line, x, y);
-  return y;
+  if (line) lines.push(line);
+  return { lines, truncated: false };
 }
 
 export function drawCover(canvas, { title, author, themeId }) {
@@ -42,8 +42,14 @@ export function drawCover(canvas, { title, author, themeId }) {
   ctx.fillStyle = p.fg;
   ctx.textAlign = 'center';
   ctx.font = 'bold 130px sans-serif';
-  wrapText(ctx, title || '제목', 800, 850, 1300, 170);
-  ctx.fillRect(700, 1780, 200, 4);
+  const { lines, truncated } = breakLines(title || '제목', 1300, t => ctx.measureText(t).width);
+  if (truncated) lines[lines.length - 1] += '…';
+  let y = 850;
+  for (const ln of lines) {
+    ctx.fillText(ln, 800, y);
+    y += 170;
+  }
+  ctx.fillRect(700, y + 60, 200, 4);
   ctx.font = '64px sans-serif';
-  ctx.fillText(author || '', 800, 1940);
+  ctx.fillText(author || '', 800, y + 220);
 }
